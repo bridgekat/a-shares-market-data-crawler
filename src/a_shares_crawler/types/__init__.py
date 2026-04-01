@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-from .schema import Field, Schema
+from .schema import Schema
 
 
 class Exchange(IntEnum):

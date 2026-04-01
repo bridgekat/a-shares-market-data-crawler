@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Any
 
 from tqdm import tqdm
 import math
@@ -24,7 +24,7 @@ def fetch_paginated(
     params: dict[str, Any],
     page_size: int,
     timeout: int,
-) -> Optional[pd.DataFrame]:
+) -> pd.DataFrame | None:
     """Helper function to fetch paginated data from EastMoney."""
     assert timeout > 0
 
@@ -59,7 +59,7 @@ def fetch_company_type(
     session: requests.Session,
     symbol: Symbol,
     timeout: int,
-) -> Optional[int]:
+) -> int | None:
     """Helper function to fetch the company type for a given A-shares stock."""
     assert timeout > 0
 
@@ -87,10 +87,10 @@ def fetch_financial_history_raw(
     session: requests.Session,
     symbol: Symbol,
     report_kind: ReportKind,
-    start_date: Optional[pd.Timestamp] = None,
-    end_date: Optional[pd.Timestamp] = None,
+    start_date: pd.Timestamp | None = None,
+    end_date: pd.Timestamp | None = None,
     timeout: int = 15,
-) -> Optional[pd.DataFrame]:
+) -> pd.DataFrame | None:
     """Fetches the financial history for a given A-shares stock from EastMoney.
 
     Returns the list as a [DataFrame][pandas.DataFrame] containing the raw data.

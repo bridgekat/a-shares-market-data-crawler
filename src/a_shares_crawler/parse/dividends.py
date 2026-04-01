@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -23,7 +22,7 @@ def _parse_dividend_receiver(text: str) -> bool:
     return text == "" or pattern.search(text) is not None
 
 
-def parse_dividends(raw: Optional[pd.DataFrame]) -> pd.DataFrame:
+def parse_dividends(raw: pd.DataFrame | None) -> pd.DataFrame:
     """Prepares the dividend history for a given A-shares stock.
 
     Parameters
@@ -75,7 +74,7 @@ def parse_dividends(raw: Optional[pd.DataFrame]) -> pd.DataFrame:
         df.set_index("date", inplace=True)
 
     # Check data consistency
-    assert df.index.notna().to_numpy().all()
+    assert df.index.notna().all()
     assert (df["share_dividends"] >= 0.0).all()
     assert (df["cash_dividends"] >= 0.0).all()
     return df

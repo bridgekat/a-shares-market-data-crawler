@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 import pandas as pd
 
@@ -40,6 +38,25 @@ _INCLUSIONS: dict[str, list[str]] = {
     "NONBUSINESS_EXPENSE": ["NONCURRENT_DISPOSAL_LOSS"],
 }
 
+_RECLASSIFIED_INTOS: dict[str, list[str]] = {
+    "TOTAL_OPERATE_INCOME": ["OPERATE_PROFIT_OTHER"],
+}
+
+_NON_FINANCIAL_RECLASSIFIED_INTOS: dict[str, list[str]] = {
+    "TOTAL_OPERATE_INCOME": [
+        "INVEST_INCOME",
+        "INVEST_JOINT_INCOME",
+        "FAIRVALUE_CHANGE_INCOME",
+        "ACF_END_INCOME",
+        "EXCHANGE_INCOME",
+        "NET_EXPOSURE_INCOME",
+        "CREDIT_IMPAIRMENT_INCOME",
+        "ASSET_IMPAIRMENT_INCOME",
+        "ASSET_DISPOSAL_INCOME",
+        "OTHER_INCOME",
+    ]
+}
+
 _POSITIVE_ITEMS: dict[str, str] = {
     "OPERATE_INCOME": "profit.operating.income.revenue",  # 营业收入
     "INTEREST_INCOME": "profit.operating.income.interests",  # 利息收入
@@ -50,7 +67,6 @@ _POSITIVE_ITEMS: dict[str, str] = {
     "OTHER_BUSINESS_INCOME": "profit.operating.income.other",  # 其他业务收入
     "OPERATE_INCOME_OTHER": "profit.operating.income.other",  # 营业收入其他项目 ?
     "TOI_OTHER": "profit.operating.income.other",  # 营业总收入其他项目
-    # The following items are reclassified under "TOTAL_OPERATE_INCOME" even for non-financial firms:
     "INVEST_INCOME": "profit.operating.income.investment.other",  # 投资收益 (不含子项目)
     "INVEST_JOINT_INCOME": "profit.operating.income.investment.equity",  # 对联营企业和合营企业的投资收益
     "FAIRVALUE_CHANGE_INCOME": "profit.operating.income.investment.fvpl",  # 公允价值变动损益
@@ -61,9 +77,8 @@ _POSITIVE_ITEMS: dict[str, str] = {
     "ASSET_IMPAIRMENT_INCOME": "profit.operating.income.asset_impairment",  # 资产减值损失
     "ASSET_DISPOSAL_INCOME": "profit.operating.income.asset_disposal",  # 资产处置收益
     "OTHER_INCOME": "profit.operating.income.other",  # 其他收益
-    # End of reclassified items
+    "OPERATE_PROFIT_OTHER": "profit.operating.income.other",  # 营业利润其他项目
     "TOTAL_OPERATE_INCOME": "profit.operating.income",  # 营业总收入 (存在不一致情况，采用原值)
-    # "OPERATE_PROFIT_OTHER": "profit.operating.other",  # 营业利润其他项目 ?
     "OPERATE_PROFIT": "profit.operating",  # 营业利润
     "NONBUSINESS_INCOME": "profit.other_income",  # 营业外收入 (不含子项目)
     "NONCURRENT_DISPOSAL_INCOME": "profit.other_income",  # 非流动资产处置净收益
@@ -113,8 +128,6 @@ _NEGATIVE_ITEMS: dict[str, str] = {
 }
 
 _DISCARDED_ITEMS: set[str] = {
-    "OPERATE_PROFIT_OTHER",
-    # Ignores
     "AGENT_SECURITY_NI",  # ... (already included in "FEE_COMMISSION_NI")
     "SECURITY_UNDERWRITE_NI",  # ... (...)
     "INVESTBANK_FEE_NI",  # ... (...)
@@ -137,7 +150,6 @@ _DISCARDED_ITEMS: set[str] = {
     "DISCONTINUED_NETPROFIT",  # 已终止经营净利润 (ignored)
     "DEDUCT_PARENT_NETPROFIT",  # 扣除非经常性损益后归属于母公司股东的净利润 (ignored)
     "AFA_FAIRVALUE_CHANGE",  # 可供出售金融资产公允价值变动损益 (already included in "FAIRVALUE_CHANGE_INCOME")
-    "HMI_AFA",  # ? (ignored)
     "RIGHTLAW_UNABLE_OCI",  # 权益法下不能转损益的其他综合收益 (ignored)
     "OTHERRIGHT_FAIRVALUE_CHANGE",  # 其他权益工具投资公允价值变动 (ignored)
     "CREDITRISK_FAIRVALUE_CHANGE",  # 企业自身信用风险公允价值变动 (ignored)
@@ -164,6 +176,7 @@ _DISCARDED_ITEMS: set[str] = {
     "PRECOMBINE_TCI",  # 被合并方在合并前实现的综合收益总额 (ignored)
     "BASIC_EPS",  # 基本每股收益 (ignored)
     "DILUTED_EPS",  # 稀释每股收益 (ignored)
+    "HMI_AFA",  # (always zero?)
 }
 
 _OTHER_ITEMS: set[str] = {
@@ -186,7 +199,7 @@ _OTHER_ITEMS: set[str] = {
 }
 
 
-def parse_income_statements(raw: Optional[pd.DataFrame]) -> pd.DataFrame:
+def parse_income_statements(raw: pd.DataFrame | None) -> pd.DataFrame:
     """Prepares the income statement history for a given A-shares stock.
 
     Parameters
@@ -285,20 +298,17 @@ def parse_income_statements(raw: Optional[pd.DataFrame]) -> pd.DataFrame:
             s = raw[raw_name] != 0
             raw.loc[s, raw_name] -= raw.loc[s, subitem_names].sum(axis="columns")
 
-        # Adjust totals for reclassified items in non-financial firms
+        for raw_name, subitem_names in _RECLASSIFIED_INTOS.items():
+            s = raw[raw_name] != 0
+            raw.loc[s, raw_name] += raw.loc[s, subitem_names].sum(axis="columns")
+
         if not is_financial:
-            raw["TOTAL_OPERATE_INCOME"] += (
-                raw["INVEST_INCOME"]
-                + raw["INVEST_JOINT_INCOME"]
-                + raw["FAIRVALUE_CHANGE_INCOME"]
-                + raw["ACF_END_INCOME"]
-                + raw["EXCHANGE_INCOME"]
-                + raw["NET_EXPOSURE_INCOME"]
-                + raw["CREDIT_IMPAIRMENT_INCOME"]
-                + raw["ASSET_IMPAIRMENT_INCOME"]
-                + raw["ASSET_DISPOSAL_INCOME"]
-                + raw["OTHER_INCOME"]
-            )
+            for (
+                raw_name,
+                subitem_names,
+            ) in _NON_FINANCIAL_RECLASSIFIED_INTOS.items():
+                s = raw[raw_name] != 0
+                raw.loc[s, raw_name] += raw.loc[s, subitem_names].sum(axis="columns")
 
         # Populate resulting DataFrame
         for raw_name, id in _POSITIVE_ITEMS.items():
@@ -344,5 +354,5 @@ def parse_income_statements(raw: Optional[pd.DataFrame]) -> pd.DataFrame:
         df.set_index("report_date", inplace=True)
 
     # Check data consistency
-    assert df.index.notna().to_numpy().all()
+    assert df.index.notna().all()
     return df

@@ -1,4 +1,3 @@
-from typing import Optional
 
 import requests
 import pandas as pd
@@ -11,10 +10,10 @@ from .utils import exchange_market_code
 def fetch_daily_prices(
     session: requests.Session,
     symbol: Symbol,
-    start_date: Optional[pd.Timestamp] = None,
-    end_date: Optional[pd.Timestamp] = None,
+    start_date: pd.Timestamp | None = None,
+    end_date: pd.Timestamp | None = None,
     timeout: int = 15,
-) -> Optional[pd.DataFrame]:
+) -> pd.DataFrame | None:
     """Fetches the daily price history for a given A-shares stock from EastMoney.
 
     Returns the list as a [DataFrame][pandas.DataFrame] containing the raw data.

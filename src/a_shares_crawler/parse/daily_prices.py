@@ -1,10 +1,9 @@
-from typing import Optional
 
 import numpy as np
 import pandas as pd
 
 
-def parse_daily_prices(raw: Optional[pd.DataFrame]) -> pd.DataFrame:
+def parse_daily_prices(raw: pd.DataFrame | None) -> pd.DataFrame:
     """Prepares the daily price history for a given A-shares stock.
 
     Parameters

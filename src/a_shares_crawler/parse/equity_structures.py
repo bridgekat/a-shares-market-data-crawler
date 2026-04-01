@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -14,7 +13,7 @@ def _parse_equity_structure_reason(text: str) -> bool:
     return pattern.search(text) is not None
 
 
-def parse_equity_structures(raw: Optional[pd.DataFrame]) -> pd.DataFrame:
+def parse_equity_structures(raw: pd.DataFrame | None) -> pd.DataFrame:
     """Prepares the equity structure history for a given A-shares stock.
 
     Parameters
@@ -66,7 +65,7 @@ def parse_equity_structures(raw: Optional[pd.DataFrame]) -> pd.DataFrame:
         df.set_index("date", inplace=True)
 
     # Check data consistency
-    assert df.index.notna().to_numpy().all()
+    assert df.index.notna().all()
     assert (df["circulating_shares"] >= 0).all()
     assert (df["circulating_shares"] <= df["total_shares"]).all()
     return df

@@ -412,9 +412,7 @@ class Schema(Field):
                         Field("fees_and_commissions"),  # (主营) 手续费及佣金支出
                         Field("insurance_surrender"),  # 保险合同退保金
                         Field("insurance_compensation"),  # 保险合同赔付支出净额
-                        Field(
-                            "insurance_contract_reserves"
-                        ),  # 提取保险责任准备金净额
+                        Field("insurance_contract_reserves"),  # 提取保险责任准备金净额
                         Field("insurance_policy_dividends"),  # 保单红利支出
                         Field("reinsurance"),  # 分保费用
                         Field("taxes_and_surcharges"),  # 税金及附加
@@ -440,5 +438,182 @@ class Schema(Field):
             Field("noncontrolling_interests"),  # 减：少数股东损益
             Field("parent_interests"),  # 减：归属于母公司股东的净利润
             Field("other"),  # 减：净利润其他项目
+            Field("residual", is_other=True),
+        )
+
+    @staticmethod
+    def cash_flow_statement() -> "Schema":
+        """Creates a cash flow statement report structure.
+
+        The structure is based on, but not exactly the same as, the following standards:
+
+        - See: [standard general format](https://kjs.mof.gov.cn/zhengcefabu/201905/t20190510_3254992.htm)
+        - See: [standard financial format](https://kjs.mof.gov.cn/gongzuotongzhi/201812/t20181227_3109872.htm)
+        - See: [standard combined format](https://kjs.mof.gov.cn/zhengcefabu/201909/t20190927_3394088.htm)
+
+        Returns
+        -------
+        The cash flow statement report structure.
+        """
+
+        return Schema(
+            "cash_flow_statement",  # 现金流量表
+            Field(
+                "change",  # 现金及现金等价物净增加额
+                Field(
+                    "operating",  # 经营活动产生的现金流量净额
+                    Field(
+                        "in",  # 经营活动现金流入小计
+                        Field("products_services"),  # 销售商品、提供劳务收到的现金
+                        Field("accepted_deposits"),  # 客户存款和同业存放款项净增加额
+                        Field("central_bank"),  # 向中央银行借款净增加额
+                        Field("settlement_reserves"),  # 结算备付金净增加额
+                        Field("insurance_premium"),  # 收到原保险合同保费取得的现金
+                        Field("insurance_client_deposits"),  # 保户储金及投资款净增加额
+                        Field("reinsurance"),  # 收到再保业务现金净额
+                        Field(
+                            "interests_fees_commissions"
+                        ),  # 收取利息、手续费及佣金的现金
+                        Field("financial"),  # 交易性金融资产和负债
+                        Field("borrowed_funds"),  # 拆入资金净增加额
+                        Field("repo"),  # 回购业务资金净增加额
+                        Field(
+                            "agency_securities_trading"
+                        ),  # 代理买卖证券收到的现金净额
+                        Field("agency_underwriting"),  # 代理承销证券收到的现金净额
+                        Field("tax_refunds"),  # 收到的税费返还
+                        Field("other", is_other=True),  # 收到其他与经营活动有关的现金
+                    ),
+                    Field(
+                        "out",  # 经营活动现金流出小计
+                        Field("products_services"),  # 购买商品、接受劳务支付的现金
+                        Field("loans_and_advances"),  # 客户贷款及垫款净增加额
+                        Field("central_bank"),  # 存放中央银行和同业款项净增加额
+                        Field("insurance_compensation"),  # 支付原保险合同赔付款项的现金
+                        Field("insurance_policy_dividends"),  # 支付保单红利的现金
+                        Field("reinsurance"),  # 支付再保业务现金净额
+                        Field(
+                            "interests_fees_commissions"
+                        ),  # 支付利息、手续费及佣金的现金
+                        Field("financial"),  # 交易性金融资产和负债
+                        Field("lent_funds"),  # 拆出资金净增加额
+                        Field("repo"),  # 返售业务资金净增加额
+                        Field("salaries"),  # 支付给职工及为职工支付的现金
+                        Field("taxes"),  # 支付的各项税费
+                        Field("other", is_other=True),  # 支付其他与经营活动有关的现金
+                    ),
+                    Field("other"),  # 经营活动产生的现金流量净额其他项目
+                    Field("residual", is_other=True),
+                ),
+                Field(
+                    "investing",  # 投资活动产生的现金流量净额
+                    Field(
+                        "in",  # 投资活动现金流入小计
+                        Field(
+                            "investment"
+                        ),  # 收回投资收到的现金 + 取得投资收益收到的现金
+                        Field(
+                            "assets"
+                        ),  # 处置固定资产、无形资产和其他长期资产收回的现金净额
+                        Field("subsidiary"),  # 处置子公司及其他营业单位收到的现金净额
+                        Field("other", is_other=True),  # 收到其他与投资活动有关的现金
+                    ),
+                    Field(
+                        "out",  # 投资活动现金流出小计
+                        Field("investment"),  # 投资支付的现金
+                        Field(
+                            "assets"
+                        ),  # 购建固定资产、无形资产和其他长期资产支付的现金
+                        Field("subsidiary"),  # 取得子公司及其他营业单位支付的现金净额
+                        Field("loans"),  # 质押贷款净增加额
+                        Field("other", is_other=True),  # 支付其他与投资活动有关的现金
+                    ),
+                    Field("other"),  # 投资活动产生的现金流量净额其他项目
+                    Field("residual", is_other=True),
+                ),
+                Field(
+                    "financing",  # 筹资活动产生的现金流量净额
+                    Field(
+                        "in",  # 筹资活动现金流入小计
+                        Field("liab"),  # 吸收投资收到的现金
+                        Field("equity"),  # 取得借款收到的现金
+                        Field("other", is_other=True),  # 收到其他与筹资活动有关的现金
+                    ),
+                    Field(
+                        "out",  # 筹资活动现金流出小计
+                        Field("liab"),  # 偿还债务支付的现金
+                        Field("equity"),  # 分配股利、利润或偿付利息支付的现金
+                        Field("other", is_other=True),  # 支付其他与筹资活动有关的现金
+                    ),
+                    Field("other"),  # 筹资活动产生的现金流量净额其他项目
+                    Field("residual", is_other=True),
+                ),
+                Field("exchange"),  # 汇率变动对现金及现金等价物的影响
+                Field("other"),  # 现金及现金等价物净增加额其他项目
+                Field("residual", is_other=True),
+            ),
+            Field("initial"),  # 期初现金及现金等价物余额
+            Field("final"),  # 减：期末现金及现金等价物余额
+            Field("residual", is_other=True),
+        )
+
+    @staticmethod
+    def indirect_statement() -> "Schema":
+        """
+        Creates an indirect cash flow statement report structure.
+
+        Returns
+        -------
+        The indirect cash flow statement report structure.
+        """
+
+        return Schema(
+            "indirect_statement",  # 现金流量表补充资料
+            Field("profit"),  # 净利润
+            Field("noncontrolling_interests"),  # 少数股东损益
+            Field(
+                "impairment",  # 减值
+                Field("asset"),  # 资产减值准备
+                Field("credit"),  # 信用减值准备
+                Field("other", is_other=True),
+            ),
+            Field(
+                "depreciation",  # 折旧
+                Field("investment_properties"),  # 投资性房地产折旧
+                Field("fixed"),  # 固定资产折旧
+                Field("other", is_other=True),
+            ),
+            Field(
+                "amortization",  # 摊销
+                Field("right_of_use"),  # 使用权资产摊销
+                Field("intangible"),  # 无形资产摊销
+                Field("deferred_expenses"),  # 长期待摊费用摊销
+                Field("deferred_revenue"),  # 递延收益摊销
+                Field("deferred_income_taxes"),  # 递延所得税
+                Field("other", is_other=True),
+            ),
+            Field(
+                "disposal",  # 资产处置
+                Field("fixed"),  # 固定资产处置
+                Field("financial"),  # 金融资产处置
+                Field("other", is_other=True),
+            ),
+            Field(
+                "financial",  # 财务费用
+                Field("interest_expense"),  # 利息支出
+                Field("other", is_other=True),
+            ),
+            Field("investment"),  # 投资损失
+            Field("exchange"),  # 汇兑损失
+            Field("inventories"),  # 存货的减少
+            Field("borrowed_funds"),  # 拆借款项的净增加
+            Field("loans_and_advances"),  # 贷款的减少
+            Field("accepted_deposits"),  # 存款的增加
+            Field("provisions"),  # 预计负债增加
+            Field("insurance_contract_reserves"),  # 提取保险责任准备金
+            Field("receivables"),  # 经营性应收项目的减少
+            Field("payables"),  # 经营性应付项目的增加
+            Field("other"),  # 经营活动产生的现金流量净额其他项目
+            Field("rhs"),  # 减：经营活动产生的现金流量净额
             Field("residual", is_other=True),
         )

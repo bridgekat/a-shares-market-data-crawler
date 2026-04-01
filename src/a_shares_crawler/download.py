@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import requests
-import pandas as pd
 
 from .types import Symbol
 from .fetch import (
@@ -11,6 +10,7 @@ from .fetch import (
     fetch_dividends,
     fetch_balance_sheets,
     fetch_income_statements,
+    fetch_cash_flow_statements,
 )
 from .parse import (
     parse_symbol_list,
@@ -19,6 +19,8 @@ from .parse import (
     parse_equity_structures,
     parse_balance_sheets,
     parse_income_statements,
+    parse_cash_flow_statements,
+    parse_indirect_statements,
 )
 
 
@@ -71,7 +73,7 @@ def download_dividends(session: requests.Session, symbol: Symbol) -> None:
     file_path_raw = HISTORY_DIR / f"{symbol}.dividends_raw.csv"
     file_path = HISTORY_DIR / f"{symbol}.dividends.csv"
 
-    if not file_path_raw.exists():
+    if not file_path.exists():
         raw = fetch_dividends(session, symbol)
         if raw is not None:
             raw.to_csv(file_path_raw, index=False)
@@ -84,7 +86,7 @@ def download_balance_sheets(session: requests.Session, symbol: Symbol) -> None:
     file_path_raw = HISTORY_DIR / f"{symbol}.balance_sheets_raw.csv"
     file_path = HISTORY_DIR / f"{symbol}.balance_sheets.csv"
 
-    if not file_path_raw.exists():
+    if not file_path.exists():
         raw = fetch_balance_sheets(session, symbol)
         if raw is not None:
             raw.to_csv(file_path_raw, index=False)
@@ -97,10 +99,26 @@ def download_income_statements(session: requests.Session, symbol: Symbol) -> Non
     file_path_raw = HISTORY_DIR / f"{symbol}.income_statements_raw.csv"
     file_path = HISTORY_DIR / f"{symbol}.income_statements.csv"
 
-    if not file_path_raw.exists():
+    if not file_path.exists():
         raw = fetch_income_statements(session, symbol)
         if raw is not None:
             raw.to_csv(file_path_raw, index=False)
 
         data = parse_income_statements(raw)
         data.to_csv(file_path, index=True)
+
+
+def download_cash_flow_statements(session: requests.Session, symbol: Symbol) -> None:
+    file_path_raw = HISTORY_DIR / f"{symbol}.cash_flow_statements_raw.csv"
+    file_path_direct = HISTORY_DIR / f"{symbol}.cash_flow_statements.csv"
+    file_path_indirect = HISTORY_DIR / f"{symbol}.indirect_statements.csv"
+
+    if not file_path_direct.exists() or not file_path_indirect.exists():
+        raw = fetch_cash_flow_statements(session, symbol)
+        if raw is not None:
+            raw.to_csv(file_path_raw, index=False)
+
+        direct_data = parse_cash_flow_statements(raw)
+        direct_data.to_csv(file_path_direct, index=True)
+        indirect_data = parse_indirect_statements(raw)
+        indirect_data.to_csv(file_path_indirect, index=True)

@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 import pandas as pd
 
@@ -283,7 +281,7 @@ _OTHER_ITEMS: set[str] = {
 }
 
 
-def parse_balance_sheets(raw: Optional[pd.DataFrame]) -> pd.DataFrame:
+def parse_balance_sheets(raw: pd.DataFrame | None) -> pd.DataFrame:
     """Prepares the balance sheet history for a given A-shares stock.
 
     Parameters
@@ -413,5 +411,5 @@ def parse_balance_sheets(raw: Optional[pd.DataFrame]) -> pd.DataFrame:
         df.set_index("report_date", inplace=True)
 
     # Check data consistency
-    assert df.index.notna().to_numpy().all()
+    assert df.index.notna().all()
     return df

@@ -8,6 +8,7 @@ from .types import Symbol
 from .session import load_config, create_session
 from .download import (
     DATA_DIR,
+    download_cash_flow_statements,
     download_symbol_list,
     download_daily_prices,
     download_equity_structures,
@@ -46,3 +47,4 @@ if __name__ == "__main__":
         download_dividends(session, symbol)
         download_balance_sheets(session, symbol)
         download_income_statements(session, symbol)
+        download_cash_flow_statements(session, symbol)

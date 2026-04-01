@@ -22,7 +22,7 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> None:
     path
         Path to the JSON configuration file.
     """
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         config = json.load(f)
 
     REQUEST_HEADERS.update(config.get("headers", {}))

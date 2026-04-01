@@ -1,4 +1,3 @@
-from typing import Optional
 
 import requests
 import pandas as pd
@@ -10,10 +9,10 @@ from .utils import fetch_paginated
 def fetch_equity_structures(
     session: requests.Session,
     symbol: Symbol,
-    start_date: Optional[pd.Timestamp] = None,
-    end_date: Optional[pd.Timestamp] = None,
+    start_date: pd.Timestamp | None = None,
+    end_date: pd.Timestamp | None = None,
     timeout: int = 15,
-) -> Optional[pd.DataFrame]:
+) -> pd.DataFrame | None:
     """Fetches the equity structure history for a given A-shares stock from EastMoney.
 
     Returns the list as a [DataFrame][pandas.DataFrame] containing the raw data.
