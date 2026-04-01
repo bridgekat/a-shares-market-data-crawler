@@ -40,6 +40,9 @@ htmlcov/
 *.swp
 *.swo
 
+# User configuration (contains cookies/secrets)
+config.json
+
 # OS files
 .DS_Store
 Thumbs.db
