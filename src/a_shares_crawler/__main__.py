@@ -1,3 +1,42 @@
+"""Download historical A-shares market data from EastMoney.
+
+Before running, you must create a JSON configuration file:
+
+1. Open https://quote.eastmoney.com/concept/sz000001.html in your web browser.
+2. Open Developer Tools (commonly by pressing F12).
+3. Select the Network tab and refresh the web page to capture HTTP traffic.
+4. Prepare the JSON configuration file:
+
+    {
+        "headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0"
+        },
+        "cookies": {
+            "fullscreengg": "..."
+        },
+        "params": {
+            "ut": "..."
+        }
+    }
+
+    Find any request towards https://push2.eastmoney.com/ and paste:
+
+    - Request cookies into the "cookies" object.
+    - The "ut" field from the request parameters into the "params" object.
+
+5. Run the crawler script with:
+
+    python -m a_shares_crawler --config path/to/config.json --data-dir path/to/output/
+
+6. Whenever the script is interrupted by an exception like "remote end closed
+   connection without response", refresh the web page in your browser, and you
+   should be prompted by a CAPTCHA. Solve it and re-run the script to continue
+   the download. This should only occur when downloading daily prices.
+
+The script skips existing files. To re-download, delete the relevant files and
+re-run.
+"""
+
 import argparse
 from pathlib import Path
 
@@ -7,7 +46,6 @@ import pandas as pd
 from .types import Symbol
 from .session import load_config, create_session
 from .download import (
-    DATA_DIR,
     download_cash_flow_statements,
     download_symbol_list,
     download_daily_prices,
@@ -19,32 +57,43 @@ from .download import (
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        prog="a_shares_crawler",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "--config",
         type=Path,
-        default=Path("config.json"),
-        help="path to the JSON configuration file (default: config.json)",
+        required=True,
+        help="path to the JSON configuration file",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        required=True,
+        help="output directory for downloaded data",
     )
     args = parser.parse_args()
 
+    data_dir = args.data_dir
     load_config(args.config)
     session = create_session()
 
     print("Downloading stock symbol list...")
-    download_symbol_list(session)
+    download_symbol_list(session, data_dir)
 
-    symbols_df = pd.read_csv(DATA_DIR / "symbol_list.csv")
+    symbols_df = pd.read_csv(data_dir / "symbol_list.csv")
     symbols = [Symbol.from_str(s) for s in symbols_df["symbol"]]
 
     print("Downloading daily prices...")
     for symbol in tqdm(symbols):
-        download_daily_prices(session, symbol)
+        download_daily_prices(session, symbol, data_dir)
 
     print("Downloading financial reports...")
     for symbol in tqdm(symbols):
-        download_equity_structures(session, symbol)
-        download_dividends(session, symbol)
-        download_balance_sheets(session, symbol)
-        download_income_statements(session, symbol)
-        download_cash_flow_statements(session, symbol)
+        download_equity_structures(session, symbol, data_dir)
+        download_dividends(session, symbol, data_dir)
+        download_balance_sheets(session, symbol, data_dir)
+        download_income_statements(session, symbol, data_dir)
+        download_cash_flow_statements(session, symbol, data_dir)

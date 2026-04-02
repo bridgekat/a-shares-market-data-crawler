@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "a-shares-market-data-crawler"
+name = "a-shares-crawler"
 version = "0.1.0"
 description = "Download A-shares stock market data."
 requires-python = ">=3.12"

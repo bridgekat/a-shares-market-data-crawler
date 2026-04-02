@@ -8,10 +8,7 @@ REQUEST_HEADERS: dict[str, str] = {}
 REQUEST_COOKIES: dict[str, str] = {}
 REQUEST_PARAMS: dict[str, Any] = {}
 
-DEFAULT_CONFIG_PATH = Path("config.json")
-
-
-def load_config(path: Path = DEFAULT_CONFIG_PATH) -> None:
+def load_config(path: Path) -> None:
     """Loads request configuration from a JSON file.
 
     The JSON file should contain `headers`, `cookies`, and `params` keys.
