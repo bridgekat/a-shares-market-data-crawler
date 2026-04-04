@@ -9,23 +9,27 @@ class Field:
     Class representing a financial report field.
     """
 
-    def __init__(self, name: str, *subfields: "Field", is_other: bool = False):
+    def __init__(
+        self,
+        name: str,
+        *subfields: "Field",
+        has_sum: bool = True,
+        is_other: bool = False,
+    ):
         self.name = name
         self.subfields = subfields
+        self.has_sum = has_sum
         self.is_other = is_other
-        assert (
-            not subfields or subfields[-1].is_other
-        ), "The 'other' field must be the last subfield."
+        if self.has_sum and self.subfields and not self.subfields[-1].is_other:
+            raise ValueError(
+                "The last subfield of a sum field must be marked as 'other'."
+            )
 
-    def iter_field_ids(
-        self, leaf_only: bool = False, prefix: str = ""
-    ) -> Generator[str, None, None]:
+    def iter_field_ids(self, prefix: str = "") -> Generator[str, None, None]:
         """Iterate over all subfield identifiers.
 
         Parameters
         ----------
-        leaf_only
-            Whether to yield only leaf field identifiers.
         prefix
             Prefix to prepend to field identifiers.
 
@@ -37,16 +41,17 @@ class Field:
         self_id = prefix + self.name
         prefix += self.name + "."
 
-        if not leaf_only or not self.subfields:
+        if self.has_sum:
             yield self_id
 
         for subfield in self.subfields:
-            yield from subfield.iter_field_ids(leaf_only, prefix)
+            yield from subfield.iter_field_ids(prefix)
 
     def adjust(self, df: pd.DataFrame, prefix: str = ""):
-        """Update missing total fields to the sums of their subfields.
+        """If the field is marked as sum, perform the adjustments:
 
-        Update the "other" subfields to the difference between total fields
+        * Update missing total fields to the sums of their subfields.
+        * Update the "other" subfields to the difference between total fields
         and the sums of other subfields.
 
         Parameters
@@ -58,23 +63,26 @@ class Field:
         self_id = prefix + self.name
         prefix += self.name + "."
 
-        sum_subfields = pd.Series(0, index=df.index, dtype=df[self_id].dtype)
         for subfield in self.subfields:
             subfield.adjust(df, prefix)
-            sum_subfields += df[prefix + subfield.name]
 
-        df[self_id] = df[self_id].fillna(sum_subfields)
-        if self.subfields:
-            df[prefix + self.subfields[-1].name] += df[self_id] - sum_subfields
+        if self.has_sum:
+            sum_subfields = pd.Series(0, index=df.index, dtype=df[self_id].dtype)
+            for subfield in self.subfields:
+                sum_subfields += df[prefix + subfield.name]
+
+            df[self_id] = df[self_id].fillna(sum_subfields)
+            if self.subfields:
+                df[prefix + self.subfields[-1].name] += df[self_id] - sum_subfields
 
 
 class Schema(Field):
     """
-    Class representing a financial report.
+    A collection of data columns.
     """
 
-    def __init__(self, name: str, *subfields: "Field"):
-        super().__init__(name, *subfields)
+    def __init__(self, name: str, *subfields: Field, has_sum: bool = True):
+        super().__init__(name, *subfields, has_sum=has_sum)
 
     def create_dataframe(self, index: pd.Index) -> pd.DataFrame:
         """Create an empty data frame with all field identifiers as columns.
@@ -89,8 +97,78 @@ class Schema(Field):
         An empty data frame with all field identifiers as columns.
         """
 
-        columns = list(self.iter_field_ids(leaf_only=False))
+        columns = list(self.iter_field_ids())
         return pd.DataFrame(0, index=index, columns=columns, dtype=np.float64)
+
+    @staticmethod
+    def symbol_list() -> "Schema":
+        """Creates a symbol list data structure.
+
+        Returns
+        -------
+        The symbol list data structure.
+        """
+
+        return Schema(
+            "symbols",
+            Field("name"),  # 简称
+            Field("industry"),  # 行业
+            Field("area"),  # 地区
+            Field("concepts"),  # 概念
+            has_sum=False,
+        )
+
+    @staticmethod
+    def daily_prices() -> "Schema":
+        """Creates a daily prices data structure.
+
+        Returns
+        -------
+        The daily prices data structure.
+        """
+
+        return Schema(
+            "prices",
+            Field("open"),  # 开盘价
+            Field("close"),  # 收盘价
+            Field("high"),  # 最高价
+            Field("low"),  # 最低价
+            Field("amount"),  # 成交额
+            Field("volume"),  # 成交量
+            has_sum=False,
+        )
+
+    @staticmethod
+    def equity_structures() -> "Schema":
+        """Creates an equity structures data structure.
+
+        Returns
+        -------
+        The equity structures data structure.
+        """
+
+        return Schema(
+            "shares",
+            Field("total"),  # 总股本
+            Field("circulating"),  # 流通股本
+            has_sum=False,
+        )
+
+    @staticmethod
+    def dividends() -> "Schema":
+        """Creates a dividends data structure.
+
+        Returns
+        -------
+        The dividends data structure.
+        """
+
+        return Schema(
+            "dividends",
+            Field("share"),  # 每股送转股
+            Field("cash"),  # 每股派息
+            has_sum=False,
+        )
 
     @staticmethod
     def balance_sheet() -> "Schema":

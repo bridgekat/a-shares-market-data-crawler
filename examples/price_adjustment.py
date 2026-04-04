@@ -24,15 +24,15 @@ forward_adjust = utils.forward_adjustment_factors(prices, dividends)
 backward_adjust = forward_adjust / forward_adjust.max()
 
 # Obtain forward-adjusted closing prices.
-forward_adjusted_close = prices["close"] * forward_adjust
+forward_adjusted_close = prices["prices.close"] * forward_adjust
 
 # Obtain backward-adjusted closing prices.
-backward_adjusted_close = prices["close"] * backward_adjust
+backward_adjusted_close = prices["prices.close"] * backward_adjust
 
 # Display results.
 df = pd.DataFrame(
     {
-        "close": prices["close"],
+        "close": prices["prices.close"],
         "forward_adjust": forward_adjust,
         "backward_adjust": backward_adjust,
         "forward_adjusted_close": forward_adjusted_close,

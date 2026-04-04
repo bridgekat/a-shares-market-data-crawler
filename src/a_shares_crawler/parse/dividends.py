@@ -34,10 +34,10 @@ def parse_dividends(raw: pd.DataFrame | None) -> pd.DataFrame:
     -------
     A DataFrame containing the following columns:
 
-        - `date`: `np.datetime64` **(index)** - ex-dividend date, inclusive
+        - `date`: `np.datetime64` **(sorted index)** - ex-dividend date, inclusive
         - `notice_date`: `np.datetime64` or N/A - reference notice date, inclusive
-        - `share_dividends`: `np.float64` - share dividend per share (shares)
-        - `cash_dividends`: `np.float64` - cash dividend per share (CNY)
+        - `dividends.share`: `np.float64` - share dividend per share (shares)
+        - `dividends.cash`: `np.float64` - cash dividend per share (CNY)
     """
 
     # Filter out irrelevant entries
@@ -60,21 +60,23 @@ def parse_dividends(raw: pd.DataFrame | None) -> pd.DataFrame:
         df["notice_date"] = pd.to_datetime(
             raw["NOTICE_DATE"], format="%Y-%m-%d %H:%M:%S"
         )
-        df["share_dividends"], df["cash_dividends"] = zip(
+        df["dividends.share"], df["dividends.cash"] = zip(
             *raw["IMPL_PLAN_PROFILE"].map(_parse_dividend_plan)
         )
         df.set_index("date", inplace=True)
+        df.sort_index(inplace=True)
 
     else:
         df = pd.DataFrame()
         df["date"] = pd.Series(dtype="datetime64[ns]")
         df["notice_date"] = pd.Series(dtype="datetime64[ns]")
-        df["share_dividends"] = pd.Series(dtype=np.float64)
-        df["cash_dividends"] = pd.Series(dtype=np.float64)
+        df["dividends.share"] = pd.Series(dtype=np.float64)
+        df["dividends.cash"] = pd.Series(dtype=np.float64)
         df.set_index("date", inplace=True)
+        df.sort_index(inplace=True)
 
     # Check data consistency
-    assert df.index.notna().all()
-    assert (df["share_dividends"] >= 0.0).all()
-    assert (df["cash_dividends"] >= 0.0).all()
+    assert df.index.is_monotonic_increasing
+    assert (df["dividends.share"] >= 0.0).all()
+    assert (df["dividends.cash"] >= 0.0).all()
     return df

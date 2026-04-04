@@ -7,8 +7,8 @@ history_dir = Path(".") / "data" / "a_shares_history"
 
 incomes = pd.read_csv(
     history_dir / "000001.SZ.income_statements.csv",
-    parse_dates=["report_date", "notice_date"],
-    index_col="report_date",
+    parse_dates=["date", "notice_date"],
+    index_col="date",
 )
 incomes.sort_index(inplace=True)
 print(incomes)
@@ -17,9 +17,7 @@ print(incomes)
 incomes = utils.ytd_to_annualized(
     incomes,
     columns=[
-        col
-        for col in incomes.columns
-        if col not in {"report_date", "notice_date", "year", "error"}
+        col for col in incomes.columns if col not in {"date", "notice_date", "error"}
     ],
 )
 print(incomes)

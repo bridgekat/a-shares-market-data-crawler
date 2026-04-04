@@ -293,10 +293,9 @@ def parse_balance_sheets(raw: pd.DataFrame | None) -> pd.DataFrame:
     -------
     A DataFrame containing the following columns:
 
-        - `report_date`: `np.datetime64` **(index)** - report up to date, inclusive
+        - `date`: `np.datetime64` **(sorted index)** - report up to date, inclusive
         - `notice_date`: `np.datetime64` or N/A - reference notice date, inclusive
-        - `year`: `int` - reported year
-        - `error`: `bool` - whether an error has been detected in balance checking
+        - `error`: `bool` - whether significant errors have been detected in balance checking
         - `balance_sheet.*`: `np.float64` - balance sheet items (CNY)
     """
 
@@ -312,19 +311,18 @@ def parse_balance_sheets(raw: pd.DataFrame | None) -> pd.DataFrame:
     # Construct balance sheet `DataFrame`
     if raw is not None:
         df = pd.DataFrame()
-        df["report_date"] = report_dates = pd.to_datetime(
+        df["date"] = dates = pd.to_datetime(
             raw["REPORT_DATE"], format="%Y-%m-%d %H:%M:%S"
         )
         df["notice_date"] = pd.to_datetime(
             raw["UPDATE_DATE"].fillna(raw["NOTICE_DATE"]), format="%Y-%m-%d %H:%M:%S"
         )
-        df["year"] = report_dates.dt.year
         df["error"] = False
         df = pd.concat([df, schema.create_dataframe(index=df.index)], axis="columns")
 
         # Check assumptions
         assert raw["REPORT_TYPE"].isin({"一季报", "中报", "三季报", "年报"}).all()
-        assert report_dates.dt.is_quarter_end.all()
+        assert dates.dt.is_quarter_end.all()
 
         # Raw data do not distinguish between zero and missing values, so we (temporarily) do the same
         symbol = raw["SECUCODE"].iloc[0]
@@ -399,17 +397,18 @@ def parse_balance_sheets(raw: pd.DataFrame | None) -> pd.DataFrame:
         )
 
         df["error"] = s
-        df.set_index("report_date", inplace=True)
+        df.set_index("date", inplace=True)
+        df.sort_index(inplace=True)
 
     else:
         df = pd.DataFrame()
-        df["report_date"] = pd.Series(dtype="datetime64[ns]")
+        df["date"] = pd.Series(dtype="datetime64[ns]")
         df["notice_date"] = pd.Series(dtype="datetime64[ns]")
-        df["year"] = pd.Series(dtype=int)
         df["error"] = pd.Series(dtype=bool)
         df = pd.concat([df, schema.create_dataframe(index=df.index)], axis="columns")
-        df.set_index("report_date", inplace=True)
+        df.set_index("date", inplace=True)
+        df.sort_index(inplace=True)
 
     # Check data consistency
-    assert df.index.notna().all()
+    assert df.index.is_monotonic_increasing
     return df

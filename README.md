@@ -54,10 +54,10 @@ The script skips existing files. To re-download, delete the relevant files and r
 | Column | Type | Description |
 |---|---|---|
 | `symbol` | `str` | Stock symbol **(unique sorted index)** |
-| `name` | `str` | Short name |
-| `industry` | `str` | Industry or sector |
-| `area` | `str` | Geographic area |
-| `concepts` | `str` | Comma-separated list of associated concepts |
+| `symbols.name` | `str` | Short name |
+| `symbols.industry` | `str` | Industry or sector |
+| `symbols.area` | `str` | Geographic area |
+| `symbols.concepts` | `str` | Comma-separated list of associated concepts |
 
 Example: `symbol_list.csv`
 
@@ -66,12 +66,12 @@ Example: `symbol_list.csv`
 | Column | Type | Description |
 |---|---|---|
 | `date` | `np.datetime64` | Trading date **(unique sorted index)** |
-| `open` | `np.float64` | Opening price (CNY) |
-| `close` | `np.float64` | Closing price (CNY) |
-| `high` | `np.float64` | Highest price (CNY) |
-| `low` | `np.float64` | Lowest price (CNY) |
-| `amount` | `np.float64` | Transaction amount (CNY) |
-| `volume` | `np.int64` | Transaction volume (shares) |
+| `prices.open` | `np.float64` | Opening price (CNY) |
+| `prices.close` | `np.float64` | Closing price (CNY) |
+| `prices.high` | `np.float64` | Highest price (CNY) |
+| `prices.low` | `np.float64` | Lowest price (CNY) |
+| `prices.amount` | `np.float64` | Transaction amount (CNY) |
+| `prices.volume` | `np.int64` | Transaction volume (shares) |
 
 Example: `000001.SZ.daily_prices.csv`
 
@@ -81,10 +81,10 @@ Example: `000001.SZ.daily_prices.csv`
 
 | Column | Type | Description |
 |---|---|---|
-| `date` | `np.datetime64` | Effective from date, inclusive **(index)** |
+| `date` | `np.datetime64` | Effective from date, inclusive **(sorted index)** |
 | `notice_date` | `np.datetime64` | Reference notice date, inclusive (can be N/A for very old reports) |
-| `total_shares` | `np.int64` | Total shares |
-| `circulating_shares` | `np.int64` | Circulating shares |
+| `shares.total` | `np.int64` | Total shares |
+| `shares.circulating` | `np.int64` | Circulating shares |
 
 Example: `000001.SZ.equity_structures.csv`
 
@@ -94,10 +94,10 @@ Example: `000001.SZ.equity_structures.csv`
 
 | Column | Type | Description |
 |---|---|---|
-| `date` | `np.datetime64` | Ex-dividend date, inclusive **(index)** |
+| `date` | `np.datetime64` | Ex-dividend date, inclusive **(sorted index)** |
 | `notice_date` | `np.datetime64` | Reference notice date, inclusive (can be N/A for very old reports) |
-| `share_dividends` | `np.float64` | Share dividend per share (shares) |
-| `cash_dividends` | `np.float64` | Cash dividend per share (CNY) |
+| `dividends.share` | `np.float64` | Share dividend per share (shares) |
+| `dividends.cash` | `np.float64` | Cash dividend per share (CNY) |
 
 Example: `000001.SZ.dividends.csv`
 
@@ -107,9 +107,8 @@ Example: `000001.SZ.dividends.csv`
 
 | Column | Type | Description |
 |---|---|---|
-| `report_date` | `np.datetime64` | Report up to date, inclusive **(index)** |
+| `date` | `np.datetime64` | Report up to date, inclusive **(sorted index)** |
 | `notice_date` | `np.datetime64` | Reference notice date, inclusive (can be N/A for very old reports) |
-| `year` | `int` | Report year |
 | `error` | `bool` | Whether significant errors have been detected in balance checking |
 | `balance_sheet.*` | `np.float64` | Hierarchical report fields (multiple columns, see below) |
 
@@ -126,15 +125,14 @@ Example: `000001.SZ.balance_sheets.csv`
 
 - **Every item is guaranteed to be a sum of all its sub-items.** Some items have a `residual` sub-item, which represents the unexplained difference between the known total and the sum of all known sub-items in the original data (likely due to rounding errors, missing fields or duplicate entries in the original data).
 - **Assets are in positive numbers, liabilities and equity are in negative numbers.** This ensures that every balance sheet sums to zero.
-- **For trading strategy backtesting, one should assume the information become available at `effective_date := max(report_date, notice_date)`.** However, financial reports can only be produced after the report period: `notice_date >= report_date`.
+- **For trading strategy backtesting, one should assume the information become available at `effective_date := max(date, notice_date)`.** However, financial reports can only be produced after the report period: `notice_date >= date`.
 
 ### Income statements
 
 | Column | Type | Description |
 |---|---|---|
-| `report_date` | `np.datetime64` | Report up to date, inclusive **(index)** |
+| `date` | `np.datetime64` | Report up to date, inclusive **(sorted index)** |
 | `notice_date` | `np.datetime64` | Reference notice date, inclusive (can be N/A for very old reports) |
-| `year` | `int` | Report year |
 | `error` | `bool` | Whether significant errors have been detected in balance checking |
 | `income_statement.*` | `np.float64` | Hierarchical report fields (multiple columns, see below) |
 
@@ -151,16 +149,15 @@ Example: `000001.SZ.income_statements.csv`
 
 - **Every item is guaranteed to be a sum of all its sub-items.** Some items have a `residual` sub-item, which represents the unexplained difference between the known total and the sum of all known sub-items in the original data (likely due to rounding errors, missing fields or duplicate entries in the original data).
 - **Incomes are in positive numbers, expenses and equity are in negative numbers.** This ensures that every income statement sums to zero.
-- **For trading strategy backtesting, one should assume the information become available at `effective_date := max(report_date, notice_date)`.** However, financial reports can only be produced after the report period: `notice_date >= report_date`.
+- **For trading strategy backtesting, one should assume the information become available at `effective_date := max(date, notice_date)`.** However, financial reports can only be produced after the report period: `notice_date >= date`.
 - **Income statement fields represent year-to-date values.** To obtain annualized values, you must calculate the difference between the current report and the previous report of the same year and divide by the fraction of the year that has passed. A standalone method `utils.ytd_to_annualized` is provided for this purpose; see [example](examples/ytd_to_annualized.py).
 
 ### Cash flow statements
 
 | Column | Type | Description |
 |---|---|---|
-| `report_date` | `np.datetime64` | Report up to date, inclusive **(index)** |
+| `date` | `np.datetime64` | Report up to date, inclusive **(sorted index)** |
 | `notice_date` | `np.datetime64` | Reference notice date, inclusive (can be N/A for very old reports) |
-| `year` | `int` | Report year |
 | `error` | `bool` | Whether significant errors have been detected in balance checking |
 | `cash_flow_statement.*` | `np.float64` | Hierarchical report fields (multiple columns, see below) |
 
@@ -177,16 +174,15 @@ Example: `000001.SZ.cash_flow_statements.csv`
 
 - **Every item is guaranteed to be a sum of all its sub-items.** Some items have a `residual` sub-item, which represents the unexplained difference between the known total and the sum of all known sub-items in the original data (likely due to rounding errors, missing fields or duplicate entries in the original data).
 - **Inflows are in positive numbers, outflows are in negative numbers.** This ensures that every cash flow statement sums to zero.
-- **For trading strategy backtesting, one should assume the information become available at `effective_date := max(report_date, notice_date)`.** However, financial reports can only be produced after the report period: `notice_date >= report_date`.
+- **For trading strategy backtesting, one should assume the information become available at `effective_date := max(date, notice_date)`.** However, financial reports can only be produced after the report period: `notice_date >= date`.
 - **Cash flow statement fields represent year-to-date values.** To obtain annualized values, you must calculate the difference between the current report and the previous report of the same year and divide by the fraction of the year that has passed. A standalone method `utils.ytd_to_annualized` is provided for this purpose; see [example](examples/ytd_to_annualized.py).
 
 ### Indirect cash flow statements
 
 | Column | Type | Description |
 |---|---|---|
-| `report_date` | `np.datetime64` | Report up to date, inclusive **(index)** |
+| `date` | `np.datetime64` | Report up to date, inclusive **(sorted index)** |
 | `notice_date` | `np.datetime64` | Reference notice date, inclusive (can be N/A for very old reports) |
-| `year` | `int` | Report year |
 | `error` | `bool` | Whether significant errors have been detected in balance checking |
 | `indirect_statement.*` | `np.float64` | Hierarchical report fields (multiple columns, see below) |
 
@@ -203,7 +199,7 @@ Example: `000001.SZ.indirect_statements.csv`
 
 - **Every item is guaranteed to be a sum of all its sub-items.** Some items have a `residual` sub-item, which represents the unexplained difference between the known total and the sum of all known sub-items in the original data (likely due to rounding errors, missing fields or duplicate entries in the original data).
 - **The indirect statement reconciles net profit to operating cash flow.** Adjustments that increase operating cash flow are in positive numbers; the operating cash flow (`rhs`) is a negative number. This ensures that every indirect statement sums to zero.
-- **For trading strategy backtesting, one should assume the information become available at `effective_date := max(report_date, notice_date)`.** However, financial reports can only be produced after the report period: `notice_date >= report_date`.
+- **For trading strategy backtesting, one should assume the information become available at `effective_date := max(date, notice_date)`.** However, financial reports can only be produced after the report period: `notice_date >= date`.
 - **Indirect statement fields represent year-to-date values.** To obtain annualized values, you must calculate the difference between the current report and the previous report of the same year and divide by the fraction of the year that has passed. A standalone method `utils.ytd_to_annualized` is provided for this purpose; see [example](examples/ytd_to_annualized.py).
 
 > ⚠ Many financial reports are not accompanied by an indirect cash flow statement, in which case all fields except `rhs` and `residual` are zero. The data source also seems to lack many fields in indirect statements, resulting in significant errors. Only 30% of the indirect statements have tolerable errors.

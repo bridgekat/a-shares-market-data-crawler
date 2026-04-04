@@ -16,15 +16,15 @@ def forward_adjustment_factors(
     assert dividends.index.is_unique and dividends.index.is_monotonic_increasing
 
     # Extend dividends data with previous-day closing prices
-    closes = prices["close"]
+    closes = prices["prices.close"]
     closes.index += pd.Timedelta(days=1)
     closes = closes.reindex(dividends.index, method="ffill")
 
     # Calculate adjustment multipliers
     multipliers = 1.0 + (
-        dividends["cash_dividends"] / (closes - dividends["cash_dividends"])
+        dividends["dividends.cash"] / (closes - dividends["dividends.cash"])
     ).fillna(0.0)
-    multipliers *= 1.0 + dividends["share_dividends"]
+    multipliers *= 1.0 + dividends["dividends.share"]
     assert (multipliers >= 1.0).all()
 
     # Calculate forward adjustment factors

@@ -25,10 +25,10 @@ def parse_equity_structures(raw: pd.DataFrame | None) -> pd.DataFrame:
     -------
     A DataFrame containing the following columns:
 
-        - `date`: `np.datetime64` **(index)** - effective from date, inclusive
+        - `date`: `np.datetime64` **(sorted index)** - effective from date, inclusive
         - `notice_date`: `np.datetime64` or N/A - reference notice date, inclusive
-        - `total_shares`: `np.int64` - total shares
-        - `circulating_shares`: `np.int64` - circulating shares
+        - `shares.total`: `np.int64` - total shares
+        - `shares.circulating`: `np.int64` - circulating shares
     """
 
     # Filter out irrelevant entries
@@ -50,22 +50,24 @@ def parse_equity_structures(raw: pd.DataFrame | None) -> pd.DataFrame:
         df["notice_date"] = pd.to_datetime(
             raw["NOTICE_DATE"], format="%Y-%m-%d %H:%M:%S"
         )
-        df["total_shares"] = raw["TOTAL_SHARES"].astype(np.int64)
-        df["circulating_shares"] = (
+        df["shares.total"] = raw["TOTAL_SHARES"].astype(np.int64)
+        df["shares.circulating"] = (
             raw["LISTED_A_SHARES"].fillna(raw["UNLIMITED_SHARES"]).astype(np.int64)
         )
         df.set_index("date", inplace=True)
+        df.sort_index(inplace=True)
 
     else:
         df = pd.DataFrame()
         df["date"] = pd.Series(dtype="datetime64[ns]")
         df["notice_date"] = pd.Series(dtype="datetime64[ns]")
-        df["total_shares"] = pd.Series(dtype=np.int64)
-        df["circulating_shares"] = pd.Series(dtype=np.int64)
+        df["shares.total"] = pd.Series(dtype=np.int64)
+        df["shares.circulating"] = pd.Series(dtype=np.int64)
         df.set_index("date", inplace=True)
+        df.sort_index(inplace=True)
 
     # Check data consistency
-    assert df.index.notna().all()
-    assert (df["circulating_shares"] >= 0).all()
-    assert (df["circulating_shares"] <= df["total_shares"]).all()
+    assert df.index.is_monotonic_increasing
+    assert (df["shares.circulating"] >= 0).all()
+    assert (df["shares.circulating"] <= df["shares.total"]).all()
     return df
